@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>NostalgiaTV</title>
+    <!-- Tailwind CSS is configured via PostCSS/Vite -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        display: ['"Orbitron"', 'monospace'],
+                    },
+                    colors: {
+                        tv: {
+                            bg:       '#060d22',
+                            bar:      '#1a4fc4',
+                            bardark:  '#0d2a80',
+                            nav:      '#1a3a9a',
+                            navdark:  '#0a1a60',
+                            strip:    '#050d28',
+                            border:   '#3a6fd8',
+                            accent:   '#5b9fff',
+                            muted:    '#304070',
+                            text:     '#c8daff',
+                            dim:      '#8ab4ff',
+                        }
+                    },
+                    keyframes: {
+                        blink:  { '0%,49%': { opacity: '1' }, '50%,100%': { opacity: '0' } },
+                        ticker: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-200%)' } },
+                        spin:   { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } },
+                        scanline: {
+                            '0%':   { backgroundPosition: '0 0' },
+                            '100%': { backgroundPosition: '0 4px' },
+                        },
+                    },
+                    animation: {
+                        blink:   'blink 1.2s steps(1) infinite',
+                        ticker:  'ticker 22s linear infinite',
+                        yinspin: 'spin 8s linear infinite',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #000; }
+
+        .scanlines {
+            position: relative;
+        }
+        .scanlines::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0,0,0,0.07) 3px,
+                    rgba(0,0,0,0.07) 4px
+            );
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .prog-fill {
+            width: 42%;
+            background: linear-gradient(90deg, #2a5fff, #6a9fff);
+            box-shadow: 0 0 8px rgba(100,160,255,0.5);
+        }
+
+        .bar-1 { height: 25%; }
+        .bar-2 { height: 45%; }
+        .bar-3 { height: 65%; }
+        .bar-4 { height: 82%; opacity: 0.4; }
+        .bar-5 { height: 100%; opacity: 0.2; }
+    </style>
+</head>
+<body>
+
+<div class="scanlines flex flex-col w-screen h-screen border-2 border-tv-border"
+     style="box-shadow: 0 0 40px rgba(58,111,216,0.35); font-family: 'Share Tech Mono', monospace;">
+
+    <!-- ═══ TOP BAR ═══ -->
+    <div class="flex items-center justify-between px-3 py-1.5 shrink-0"
+         style="background: linear-gradient(180deg, #1a4fc4 0%, #2a5fd8 50%, #1e4fc0 100%); border-bottom: 2px solid #4a7fe8;">
+
+        <!-- Left: Logo + Channel -->
+        <div class="flex items-center gap-2.5">
+            <svg class="animate-yinspin shrink-0" width="34" height="34" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="15" fill="white" stroke="#aaa" stroke-width="1"/>
+                <path d="M16 1 A15 15 0 0 1 16 31 A7.5 7.5 0 0 1 16 16 A7.5 7.5 0 0 0 16 1Z" fill="black"/>
+                <circle cx="16" cy="8.5" r="3.5" fill="white"/>
+                <circle cx="16" cy="23.5" r="3.5" fill="black"/>
+            </svg>
+            <div>
+                <div class="font-display font-black text-white leading-none" style="font-size: clamp(14px, 2vw, 22px); text-shadow: 0 0 10px rgba(255,255,255,0.4);">001</div>
+                <div class="font-display text-tv-dim tracking-widest uppercase" style="font-size: clamp(7px, 0.9vw, 10px);">NOSTALGIA-TV</div>
+            </div>
+        </div>
+
+        <!-- Center: Now Playing -->
+         <div class="absolute left-1/2 -translate-x-1/2 font-display font-bold text-white tracking-widest"
+              style="font-size: clamp(11px, 1.6vw, 17px); text-shadow: 0 0 16px rgba(180,210,255,0.6);">
+             <span id="nowPlaying">Loading...</span>
+         </div>
+
+        <!-- Right: Language -->
+        <div class="font-mono text-tv-text tracking-wide border border-white/20 px-2 py-0.5 bg-black/20"
+             style="font-size: clamp(9px, 1vw, 13px);">
+            English
+        </div>
+    </div>
+
+    <!-- ═══ INFO BAR ═══ -->
+     <div class="grid items-center px-3 py-1 shrink-0 gap-2"
+          style="grid-template-columns: auto 1fr auto auto auto auto; background: linear-gradient(180deg, #0d2a80 0%, #0a2070 100%); border-bottom: 1px solid #2a4aaa;">
+
+         <div class="font-display font-bold text-tv-accent tracking-wide"
+              style="font-size: clamp(9px, 1.1vw, 13px);" id="currentDate">Fri 8/16/2007 &nbsp;1:00p</div>
+
+         <div class="font-mono text-tv-dim tracking-wide"
+              style="font-size: clamp(9px, 1vw, 12px);" id="timeRange">1:00p – 2:00p</div>
+
+        <div class="font-mono text-tv-muted tracking-widest border border-tv-muted/40 px-1.5 py-0.5"
+             style="font-size: clamp(8px, 0.9vw, 11px);">NONE</div>
+
+        <!-- Globe -->
+        <div class="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer hover:brightness-125 transition-all"
+             style="background: radial-gradient(circle at 40% 35%, #2060d0, #0a1860);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ab0ff" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+        </div>
+
+        <!-- Clock -->
+        <div class="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer hover:brightness-125 transition-all"
+             style="background: radial-gradient(circle at 40% 35%, #506090, #1a2440);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0b8e0" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+
+        <!-- Settings -->
+        <div class="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer hover:brightness-125 transition-all"
+             style="background: radial-gradient(circle at 40% 35%, #404860, #1a1e30);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8090b0" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- ═══ NAV BAR ═══ -->
+     <div class="flex items-center justify-between px-3 py-1 shrink-0"
+          style="background: linear-gradient(180deg, #1a3a9a 0%, #142e88 100%); border-bottom: 2px solid #0a1a60;">
+         <span class="font-mono text-tv-text tracking-wide" style="font-size: clamp(9px, 1vw, 12px);">Nostalgia-TV Stream</span>
+         <button id="fullscreenBtn" class="font-mono font-bold text-white flex items-center gap-2 px-4 py-1.5 hover:brightness-110 transition-all cursor-pointer"
+                 style="background: linear-gradient(180deg, #2a5fff, #1a3fdd); font-size: clamp(10px, 1.2vw, 14px); letter-spacing: 0.05em; border-radius: 4px; border: 1px solid #4a7fff;">
+             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                 <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+             </svg>
+             FULLSCREEN
+         </button>
+     </div>
+
+     <!-- ═══ MAIN CONTENT AREA (fills remaining space) ═══ -->
+     <div class="flex-1 min-h-0 flex items-center justify-center" style="background: linear-gradient(135deg, #0d1a40 0%, #060d22 100%);">
+         <iframe id="videoPlayer" width="100%" height="100%"
+                 style="border: none;"
+                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                 allowfullscreen>
+         </iframe>
+     </div>
+
+    <!-- ═══ PROGRESS BAR ═══ -->
+     <div class="flex items-center gap-3 px-3 py-1.5 shrink-0" style="background: #050d28; border-top: 1px solid #0a1a50;">
+         <span class="font-mono text-tv-muted tracking-wide" style="font-size: clamp(8px, 0.9vw, 11px);" id="currentTime">0:00</span>
+         <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: #0d1a50;">
+             <div class="prog-fill h-full rounded-full" id="progressBar" style="width: 0%;"></div>
+         </div>
+         <span class="font-mono text-tv-muted tracking-wide" style="font-size: clamp(8px, 0.9vw, 11px);" id="totalTime">10:00</span>
+        <!-- Signal bars -->
+        <div class="flex items-end gap-0.5" style="height: 16px;">
+            <div class="w-1 rounded-sm bar-1" style="background:#2a5fff;"></div>
+            <div class="w-1 rounded-sm bar-2" style="background:#2a5fff;"></div>
+            <div class="w-1 rounded-sm bar-3" style="background:#2a5fff;"></div>
+            <div class="w-1 rounded-sm bar-4" style="background:#2a5fff;"></div>
+            <div class="w-1 rounded-sm bar-5" style="background:#2a5fff;"></div>
+        </div>
+    </div>
+
+     <!-- ═══ TICKER ═══ -->
+     <div class="flex items-center overflow-hidden shrink-0 px-3 py-1" style="background: #060e30; border-top: 1px solid #0a1540;">
+     <span class="font-mono text-tv-muted tracking-widest uppercase whitespace-nowrap animate-ticker inline-block"
+           style="font-size: clamp(8px, 0.85vw, 10px);" id="ticker">
+       LOADING CHANNELS &nbsp;&nbsp;///&nbsp;&nbsp; INITIALIZING BROADCAST &nbsp;&nbsp;///&nbsp;&nbsp; PLEASE STAND BY &nbsp;&nbsp;///&nbsp;&nbsp;
+     </span>
+     </div>
+
+ </div>
+
+ <script>
+     // ═══ SEEDED PRNG FOR SYNCHRONIZATION ═══
+     class SeededRandom {
+         constructor(seed) {
+             this.seed = seed;
+         }
+
+         next() {
+             this.seed = (this.seed * 9301 + 49297) % 233280;
+             return this.seed / 233280;
+         }
+     }
+
+      // ═══ TV CHANNEL STATE ═══
+      let programs = [];
+      let currentProgramIndex = 0;
+      let currentVideoElement = null;
+      let updateInterval = null;
+      let videoStartTime = 0;
+      let videoDuration = 0;
+      let videoElement = document.getElementById('videoPlayer');
+      let videoCheckTimeout = null;
+      let programChangeTimeout = null;
+
+      // ═══ LOAD PROGRAMS ═══
+      async function loadPrograms() {
+          try {
+              const response = await fetch('/programs.json');
+              programs = await response.json();
+              console.log(`📺 LOADED ${programs.length} PROGRAMS FROM LIBRARY`);
+              programs.forEach((prog, idx) => {
+                  console.log(`   [${idx + 1}] ${prog.name}`);
+              });
+              initializeChannel();
+          } catch (error) {
+              console.error('Failed to load programs:', error);
+              document.getElementById('nowPlaying').textContent = 'ERROR LOADING BROADCAST';
+          }
+      }
+
+     // ═══ GET CURRENT PROGRAM BASED ON TIME ═══
+     function getCurrentProgramIndex() {
+         const now = Date.now();
+         const dayStart = new Date(now).setHours(0, 0, 0, 0);
+         const secondsSinceMidnight = (now - dayStart) / 1000;
+
+         // Use seeded RNG based on current day to ensure sync
+         const seed = Math.floor(now / (24 * 60 * 60 * 1000));
+         const rng = new SeededRandom(seed);
+
+         // Simulate program sequence for the day
+         let totalSeconds = 0;
+         for (let i = 0; i < 1000; i++) {
+             const idx = Math.floor(rng.next() * programs.length);
+             totalSeconds += 600;
+             if (totalSeconds > secondsSinceMidnight) {
+                 return idx;
+             }
+         }
+         return 0;
+     }
+
+     // ═══ GET VIDEOS FROM YOUTUBE URL ═══
+     function getVideoIdFromUrl(url) {
+         const match = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+         return match ? match[1] : null;
+     }
+
+     // ═══ INITIALIZE CHANNEL ═══
+     function initializeChannel() {
+         currentProgramIndex = getCurrentProgramIndex();
+         playCurrentProgram();
+     }
+
+      // ═══ PLAY CURRENT PROGRAM ═══
+      function playCurrentProgram() {
+          if (programs.length === 0) return;
+
+          const program = programs[currentProgramIndex];
+          const videoId = getVideoIdFromUrl(program.video);
+
+          if (!videoId) {
+              console.error('Invalid video URL:', program.video);
+              playNextProgram();
+              return;
+          }
+
+          // Clear any existing timeouts
+          if (videoCheckTimeout) clearTimeout(videoCheckTimeout);
+          if (programChangeTimeout) clearTimeout(programChangeTimeout);
+
+          // Set up YouTube iframe with autoplay - use simplest URL to avoid errors
+          const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&modestbranding=1&rel=0`;
+          videoElement.src = youtubeUrl;
+
+          console.log(`🎬 NOW PLAYING [${currentProgramIndex}]: "${program.name}" | Video ID: ${videoId}`);
+
+          // Update UI
+          document.getElementById('nowPlaying').textContent = program.name;
+          updateTicker(program);
+
+          // Set up progress tracking
+          videoStartTime = Date.now();
+          videoDuration = 300000; // 5 minutes instead of 10 for faster testing
+
+          // Update progress bar
+          if (updateInterval) clearInterval(updateInterval);
+          updateInterval = setInterval(updateProgress, 100);
+
+          // Watchdog timer: If no playback detected after 5 seconds, skip to next video
+          let playbackStarted = false;
+          let lastProgress = 0;
+
+          videoCheckTimeout = setTimeout(() => {
+              // If progress bar hasn't moved, video likely failed
+              const currentTime = document.getElementById('currentTime').textContent;
+              if (currentTime === '0:00') {
+                  console.error(`❌ VIDEO BLOCKED/UNAVAILABLE [${currentProgramIndex}]: "${program.name}" | Video ID: ${videoId}`);
+                  playNextProgram();
+              }
+          }, 5000);
+
+          // Also set a backup: if video hasn't progressed after 8 seconds, skip
+          const backupCheckTimeout = setTimeout(() => {
+              const currentTimeText = document.getElementById('currentTime').textContent;
+              if (currentTimeText === '0:00') {
+                  console.error(`❌ VIDEO STUCK/FAILED [${currentProgramIndex}]: "${program.name}" | Video ID: ${videoId}`);
+                  if (videoCheckTimeout) clearTimeout(videoCheckTimeout);
+                  playNextProgram();
+              }
+          }, 8000);
+
+          // Schedule next program after video duration
+          programChangeTimeout = setTimeout(() => {
+              console.log(`✅ VIDEO COMPLETED: "${program.name}"`);
+              currentProgramIndex = (currentProgramIndex + 1) % programs.length;
+              playCurrentProgram();
+          }, videoDuration);
+      }
+
+     // ═══ PLAY NEXT PROGRAM ═══
+     function playNextProgram() {
+         currentProgramIndex = (currentProgramIndex + 1) % programs.length;
+         playCurrentProgram();
+     }
+
+     // ═══ UPDATE PROGRESS BAR ═══
+     function updateProgress() {
+         const elapsed = Date.now() - videoStartTime;
+         const progress = Math.min((elapsed / videoDuration) * 100, 100);
+
+         document.getElementById('progressBar').style.width = progress + '%';
+         document.getElementById('currentTime').textContent = formatTime(elapsed / 1000);
+         document.getElementById('totalTime').textContent = formatTime(videoDuration / 1000);
+
+         if (progress >= 100) {
+             clearInterval(updateInterval);
+         }
+     }
+
+     // ═══ FORMAT TIME ═══
+     function formatTime(seconds) {
+         const mins = Math.floor(seconds / 60);
+         const secs = Math.floor(seconds % 60);
+         return `${mins}:${secs.toString().padStart(2, '0')}`;
+     }
+
+     // ═══ UPDATE TICKER ═══
+     function updateTicker(program) {
+         const ticker = document.getElementById('ticker');
+         const nextIdx = (currentProgramIndex + 1) % programs.length;
+         const nextProgram = programs[nextIdx];
+
+         ticker.textContent = `NOW PLAYING: ${program.name.toUpperCase()} &nbsp;&nbsp;///&nbsp;&nbsp; UP NEXT: ${nextProgram.name.toUpperCase()} &nbsp;&nbsp;///&nbsp;&nbsp; 2000S NETWORK &nbsp;&nbsp;///&nbsp;&nbsp; ALL DAY BROADCAST &nbsp;&nbsp;///&nbsp;&nbsp; SIGNAL STRENGTH: GOOD &nbsp;&nbsp;///&nbsp;&nbsp; STAY TUNED &nbsp;&nbsp;///&nbsp;&nbsp;`;
+     }
+
+     // ═══ INITIALIZE ═══
+     loadPrograms();
+
+     // ═══ FULLSCREEN BUTTON ═══
+     document.getElementById('fullscreenBtn').addEventListener('click', () => {
+         const elem = document.documentElement;
+         if (elem.requestFullscreen) {
+             elem.requestFullscreen();
+         } else if (elem.webkitRequestFullscreen) {
+             elem.webkitRequestFullscreen();
+         } else if (elem.mozRequestFullScreen) {
+             elem.mozRequestFullScreen();
+         } else if (elem.msRequestFullscreen) {
+             elem.msRequestFullscreen();
+         }
+     });
+ </script>
