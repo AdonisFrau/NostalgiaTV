@@ -1,13 +1,24 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>nostalgiatv</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <!-- This tells the browser to redirect immediately to the subpath -->
+  <meta http-equiv="refresh" content="0; url=/feed/Nostalgiawire/index.html" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nostalgiatv</title>
+
+  <script type="text/javascript">
+    // Backup redirect in case meta refresh is ignored
+    if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+      window.location.href = '/feed/Nostalgiawire/index.html';
+    }
+  </script>
+</head>
+<body>
+<div id="app"></div>
+<!-- Note: If your main.ts is actually inside the subfolder, update the path below -->
+<script type="module" src="/src/main.ts"></script>
+</body>
 </html>
