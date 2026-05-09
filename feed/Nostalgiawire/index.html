@@ -84,7 +84,7 @@
 </head>
 <body>
 
-<div class="scanlines flex flex-col w-screen h-screen border-2 border-tv-border"
+<div id="appRoot" class="scanlines flex flex-col w-screen h-screen border-2 border-tv-border"
      style="box-shadow: 0 0 40px rgba(58,111,216,0.35); font-family: 'Share Tech Mono', monospace;">
 
     <!-- ═══ TOP BAR ═══ -->
@@ -225,29 +225,50 @@
      }
 
       // ═══ TV CHANNEL STATE ═══
+      const channelSources = {
+          programs: {
+              url: '/programs.json',
+              label: '2000s Network',
+              durationMs: 5 * 60 * 1000
+          },
+          study: {
+              url: '/StudyCentralPrograms.json',
+              label: 'Study-Central Academia',
+              durationMs: 30 * 60 * 1000
+          },
+          christmas: {
+              url: '/ChristmalesCarols24.json',
+              label: 'Christmas-Carols24',
+              durationMs: 30 * 60 * 1000
+          }
+      };
+      let currentChannelKey = 'programs';
       let programs = [];
       let currentProgramIndex = 0;
       let currentVideoElement = null;
       let updateInterval = null;
       let videoStartTime = 0;
-      let videoDuration = 0;
+      let videoDuration = channelSources[currentChannelKey].durationMs;
       let videoElement = document.getElementById('videoPlayer');
       let videoCheckTimeout = null;
       let programChangeTimeout = null;
 
       // ═══ LOAD PROGRAMS ═══
-      async function loadPrograms() {
+      async function loadPrograms(channelKey = 'programs') {
           try {
-              const response = await fetch('/programs.json');
+              currentChannelKey = channelKey;
+              const response = await fetch(channelSources[channelKey].url);
               programs = await response.json();
-              console.log(`📺 LOADED ${programs.length} PROGRAMS FROM LIBRARY`);
+              videoDuration = channelSources[channelKey].durationMs;
+              console.log(`📺 LOADED ${programs.length} PROGRAMS FROM ${channelSources[channelKey].label.toUpperCase()}`);
               programs.forEach((prog, idx) => {
                   console.log(`   [${idx + 1}] ${prog.name}`);
               });
               initializeChannel();
           } catch (error) {
               console.error('Failed to load programs:', error);
-              document.getElementById('nowPlaying').textContent = 'ERROR LOADING BROADCAST';
+              const nowPlaying = document.getElementById('nowPlaying');
+              if (nowPlaying) nowPlaying.textContent = 'ERROR LOADING BROADCAST';
           }
       }
 
@@ -275,14 +296,51 @@
 
      // ═══ GET VIDEOS FROM YOUTUBE URL ═══
      function getVideoIdFromUrl(url) {
-         const match = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+         const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
          return match ? match[1] : null;
+     }
+
+     function sendYouTubeCommand(func, args = []) {
+         if (videoElement?.contentWindow) {
+             videoElement.contentWindow.postMessage(JSON.stringify({
+                 event: 'command',
+                 func,
+                 args
+             }), '*');
+         }
      }
 
      // ═══ INITIALIZE CHANNEL ═══
      function initializeChannel() {
          currentProgramIndex = getCurrentProgramIndex();
          playCurrentProgram();
+     }
+
+     function switchChannelFeed(channelKey, programId) {
+         if (!channelSources[channelKey]) {
+             console.warn('Unknown channel key:', channelKey);
+             return;
+         }
+         loadPrograms(channelKey).then(() => {
+             if (typeof programId === 'number') {
+                 const targetIndex = programs.findIndex(p => p.id === programId);
+                 if (targetIndex !== -1) {
+                     currentProgramIndex = targetIndex;
+                 }
+             }
+             playCurrentProgram();
+         });
+     }
+
+     function getCurrentChannelState() {
+         return {
+             channelKey: currentChannelKey,
+             channelLabel: channelSources[currentChannelKey].label,
+             program: programs[currentProgramIndex] || null,
+             videoSrc: videoElement?.src || '',
+             durationMs: videoDuration,
+             currentTime: new Date()
+         };
      }
 
       // ═══ PLAY CURRENT PROGRAM ═══
@@ -303,7 +361,11 @@
           if (programChangeTimeout) clearTimeout(programChangeTimeout);
 
           // Set up YouTube iframe with autoplay and JS API enabled so remote volume control works
-          const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+          const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+          videoElement.onload = () => {
+              sendYouTubeCommand('unMute');
+              sendYouTubeCommand('setVolume', 50);
+          };
           videoElement.src = youtubeUrl;
 
           console.log(`🎬 NOW PLAYING [${currentProgramIndex}]: "${program.name}" | Video ID: ${videoId}`);
@@ -357,6 +419,12 @@
          playCurrentProgram();
      }
 
+     // ═══ PLAY PREVIOUS PROGRAM ═══
+     function playPrevProgram() {
+         currentProgramIndex = (currentProgramIndex - 1 + programs.length) % programs.length;
+         playCurrentProgram();
+     }
+
      // ═══ UPDATE PROGRESS BAR ═══
      function updateProgress() {
          const elapsed = Date.now() - videoStartTime;
@@ -389,18 +457,95 @@
 
      // ═══ INITIALIZE ═══
      loadPrograms();
+     window.playNextProgram = playNextProgram;
+     window.playPrevProgram = playPrevProgram;
+     window.switchChannelFeed = switchChannelFeed;
+     window.getCurrentChannelState = getCurrentChannelState;
 
      // ═══ FULLSCREEN BUTTON ═══
-     document.getElementById('fullscreenBtn').addEventListener('click', () => {
-         const elem = document.documentElement;
-         if (elem.requestFullscreen) {
-             elem.requestFullscreen();
-         } else if (elem.webkitRequestFullscreen) {
-             elem.webkitRequestFullscreen();
-         } else if (elem.mozRequestFullScreen) {
-             elem.mozRequestFullScreen();
-         } else if (elem.msRequestFullscreen) {
-             elem.msRequestFullscreen();
+     function getFullscreenElement() {
+         return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
+     }
+
+     function enterFullscreen(element) {
+         if (!element) return false;
+         try {
+             if (element.requestFullscreen) {
+                 element.requestFullscreen();
+             } else if (element.webkitRequestFullscreen) {
+                 element.webkitRequestFullscreen();
+             } else if (element.mozRequestFullScreen) {
+                 element.mozRequestFullScreen();
+             } else if (element.msRequestFullscreen) {
+                 element.msRequestFullscreen();
+             } else {
+                 console.warn('[NostalgiaTV] fullscreen not supported on element', element);
+                 return false;
+             }
+             return true;
+         } catch (error) {
+             console.error('[NostalgiaTV] enterFullscreen error', error);
+             return false;
          }
-     });
+     }
+
+     function exitFullscreen() {
+         try {
+             if (document.exitFullscreen) {
+                 document.exitFullscreen();
+             } else if (document.webkitExitFullscreen) {
+                 document.webkitExitFullscreen();
+             } else if (document.mozCancelFullScreen) {
+                 document.mozCancelFullScreen();
+             } else if (document.msExitFullscreen) {
+                 document.msExitFullscreen();
+             } else {
+                 console.warn('[NostalgiaTV] exitFullscreen not supported');
+             }
+         } catch (error) {
+             console.error('[NostalgiaTV] exitFullscreen error', error);
+         }
+     }
+
+     function logFullscreenState(stage) {
+         console.log(`[NostalgiaTV] fullscreen ${stage}:`, {
+             active: !!getFullscreenElement(),
+             fullscreenElement: getFullscreenElement(),
+             readyState: document.readyState,
+             fullscreenEnabled: document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled
+         });
+     }
+
+     function initFullscreenButton() {
+         const button = document.getElementById('fullscreenBtn');
+         const appRoot = document.getElementById('appRoot') || document.documentElement;
+         console.log('[NostalgiaTV] initFullscreenButton', { button, appRoot });
+         if (!button) {
+             console.error('[NostalgiaTV] fullscreen button not found');
+             return;
+         }
+
+         button.addEventListener('click', (event) => {
+             event.preventDefault();
+             logFullscreenState('clicked');
+             const isActive = !!getFullscreenElement();
+             if (!isActive) {
+                 const started = enterFullscreen(appRoot);
+                 console.log('[NostalgiaTV] requestFullscreen started', started);
+             } else {
+                 exitFullscreen();
+             }
+         });
+
+         document.addEventListener('fullscreenchange', () => logFullscreenState('change')); 
+         document.addEventListener('webkitfullscreenchange', () => logFullscreenState('webkitchange'));
+         document.addEventListener('mozfullscreenchange', () => logFullscreenState('mozchange'));
+         document.addEventListener('MSFullscreenChange', () => logFullscreenState('mschange'));
+     }
+
+     if (document.readyState === 'loading') {
+         document.addEventListener('DOMContentLoaded', initFullscreenButton);
+     } else {
+         initFullscreenButton();
+     }
  </script>

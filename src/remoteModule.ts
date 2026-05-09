@@ -14,6 +14,8 @@ declare global {
     }
 }
 
+import { ChannelsManager } from './channelsManagerModule';
+
 class RemoteControlModule implements IRemoteControl {
     private isVisible: boolean = false;
     private rootElement: HTMLElement | null = null;
@@ -25,6 +27,7 @@ class RemoteControlModule implements IRemoteControl {
     public init(): void {
         this.injectStyles();
         this.createRemote();
+        ChannelsManager.init();
         this.setupListeners();
     }
 
@@ -239,7 +242,7 @@ class RemoteControlModule implements IRemoteControl {
                       
                       <!-- OK / Middle Button (Slightly cleaner rubber) -->
                       <button class="w-14 h-14 bg-blue-900 rounded-full shadow-[0_4px_0_0_#0f172a,inset_0_1px_2px_rgba(255,255,255,0.2)] text-blue-100 font-bold text-xs hover:brightness-110 active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center border border-blue-800/50"
-                              data-action="pause">
+                              data-action="open-guide">
                         SELECT
                       </button>
                     </div>
@@ -308,6 +311,7 @@ class RemoteControlModule implements IRemoteControl {
 
     private adjustVolume(delta: number): void {
         this.volume = Math.max(0, Math.min(100, this.volume + delta));
+        this.sendYouTubeCommand('unMute');
         this.sendYouTubeCommand('setVolume', this.volume);
         console.log(`Volume: ${this.volume}%`);
     }
@@ -335,6 +339,7 @@ class RemoteControlModule implements IRemoteControl {
 
                 switch (action) {
                     case 'pause': this.togglePlayback(); break;
+                    case 'open-guide': ChannelsManager.show(); break;
                     case 'vol-up': this.adjustVolume(10); break;
                     case 'vol-down': this.adjustVolume(-10); break;
                     case 'next':
