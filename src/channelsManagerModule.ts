@@ -166,10 +166,10 @@ class ChannelsManagerModule {
                       <circle cx="14" cy="50" r="4" fill="url(#dg)"/>
                     </svg>
                   </div>
-                  <div class="logo-text">ARPWIRE TV</div>
+                  <div class="logo-text">Nostalgia Central TV</div>
                 </div>
                 <div class="header-center">
-                  <div class="channel-title" id="managerChannelTitle">ARPWIRE TV CHOICE (2009)</div>
+                  <div class="channel-title" id="managerChannelTitle">Nostalgia TV CHOICE (2009)</div>
                   <div class="time-bar">
                     <div class="time-info" id="managerCurrentTime">Mon 5:46a</div>
                     <div class="time-range" id="managerTimeRange">5:30a – 6:00a</div>
