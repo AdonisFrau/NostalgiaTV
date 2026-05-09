@@ -1,0 +1,79 @@
+[
+  {
+    "id": 1,
+    "name": "Classic Christmas Hits Mix",
+    "video": "https://www.youtube.com/watch?v=x305n2dMm8M",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 2,
+    "name": "Modern Christmas Favorites",
+    "video": "https://www.youtube.com/watch?v=_H6nNysTQs8",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 3,
+    "name": "Cozy Holiday Classics",
+    "video": "https://www.youtube.com/watch?v=vjT6AR6tM9g",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 4,
+    "name": "Michael Bublé Christmas (Full Album)",
+    "video": "https://www.youtube.com/watch?v=w9ADYSAko78",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 5,
+    "name": "Ultimate Christmas Carols Collection",
+    "video": "https://www.youtube.com/watch?v=6hIIB3bsyD8",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 6,
+    "name": "Top Christmas Songs Playlist",
+    "video": "https://www.youtube.com/watch?v=1R7p8ur05sk",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 7,
+    "name": "Upbeat Holiday Anthems",
+    "video": "https://www.youtube.com/watch?v=t9WWj19YejM",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 8,
+    "name": "Essential Xmas Classics",
+    "video": "https://www.youtube.com/watch?v=QeDzM6HKr5k",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 9,
+    "name": "Traditional Carols Medley",
+    "video": "https://www.youtube.com/watch?v=DpbptRrXy_8",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 10,
+    "name": "Nostalgic Christmas Radio",
+    "video": "https://www.youtube.com/watch?v=oj7F6TsUFmI",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  },
+  {
+    "id": 11,
+    "name": "Silent Night & Peace Mix",
+    "video": "https://www.youtube.com/watch?v=zT0T9CDsrpo",
+    "vibe": "Christmas / Holiday",
+    "channel": "Christmas-Carols24"
+  }
+]

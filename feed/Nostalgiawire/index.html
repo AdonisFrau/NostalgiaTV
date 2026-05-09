@@ -302,8 +302,8 @@
           if (videoCheckTimeout) clearTimeout(videoCheckTimeout);
           if (programChangeTimeout) clearTimeout(programChangeTimeout);
 
-          // Set up YouTube iframe with autoplay - use simplest URL to avoid errors
-          const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&modestbranding=1&rel=0`;
+          // Set up YouTube iframe with autoplay and JS API enabled so remote volume control works
+          const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
           videoElement.src = youtubeUrl;
 
           console.log(`🎬 NOW PLAYING [${currentProgramIndex}]: "${program.name}" | Video ID: ${videoId}`);
