@@ -245,6 +245,8 @@
       let currentChannelKey = 'programs';
       let programs = [];
       let currentProgramIndex = 0;
+      let currentSlot = 0;
+      let dailyProgramSequence = [];
       let currentVideoElement = null;
       let updateInterval = null;
       let videoStartTime = 0;
@@ -260,6 +262,7 @@
               const response = await fetch(channelSources[channelKey].url);
               programs = await response.json();
               videoDuration = channelSources[channelKey].durationMs;
+              dailyProgramSequence = buildDailyProgramSequence();
               console.log(`📺 LOADED ${programs.length} PROGRAMS FROM ${channelSources[channelKey].label.toUpperCase()}`);
               programs.forEach((prog, idx) => {
                   console.log(`   [${idx + 1}] ${prog.name}`);
@@ -272,7 +275,40 @@
           }
       }
 
-     // ═══ GET CURRENT PROGRAM BASED ON TIME ═══
+     // ═══ DAILY SCHEDULE HELPERS ═══
+     function getChannelSlotCount() {
+         return Math.max(1, Math.ceil(86400000 / channelSources[currentChannelKey].durationMs));
+     }
+
+     function buildDailyProgramSequence() {
+         const slotCount = getChannelSlotCount();
+         const now = Date.now();
+         const dayStart = new Date(now).setHours(0, 0, 0, 0);
+         const seed = Math.floor(dayStart / (24 * 60 * 60 * 1000));
+         const rng = new SeededRandom(seed);
+         const sequence = [];
+
+         for (let i = 0; i < slotCount; i++) {
+             sequence.push(Math.floor(rng.next() * programs.length));
+         }
+
+         return sequence;
+     }
+
+     function getCurrentSlotIndex() {
+         const now = Date.now();
+         const dayStart = new Date(now).setHours(0, 0, 0, 0);
+         const slotDuration = channelSources[currentChannelKey].durationMs;
+         const slot = Math.floor((now - dayStart) / slotDuration);
+         return slot % getChannelSlotCount();
+     }
+
+     function getCurrentProgramIndex() {
+         currentSlot = getCurrentSlotIndex();
+         return dailyProgramSequence[currentSlot] ?? 0;
+     }
+
+     // ═══ GET VIDEOS FROM YOUTUBE URL ═══
      function getCurrentProgramIndex() {
          const now = Date.now();
          const dayStart = new Date(now).setHours(0, 0, 0, 0);
@@ -321,11 +357,14 @@
              console.warn('Unknown channel key:', channelKey);
              return;
          }
+
          loadPrograms(channelKey).then(() => {
              if (typeof programId === 'number') {
                  const targetIndex = programs.findIndex(p => p.id === programId);
                  if (targetIndex !== -1) {
                      currentProgramIndex = targetIndex;
+                     const slotIndex = dailyProgramSequence.findIndex(idx => idx === targetIndex);
+                     currentSlot = slotIndex >= 0 ? slotIndex : getCurrentSlotIndex();
                  }
              }
              playCurrentProgram();
@@ -408,20 +447,23 @@
           // Schedule next program after video duration
           programChangeTimeout = setTimeout(() => {
               console.log(`✅ VIDEO COMPLETED: "${program.name}"`);
-              currentProgramIndex = (currentProgramIndex + 1) % programs.length;
+              currentSlot = (currentSlot + 1) % dailyProgramSequence.length;
+              currentProgramIndex = dailyProgramSequence[currentSlot];
               playCurrentProgram();
           }, videoDuration);
       }
 
      // ═══ PLAY NEXT PROGRAM ═══
      function playNextProgram() {
-         currentProgramIndex = (currentProgramIndex + 1) % programs.length;
+         currentSlot = (currentSlot + 1) % dailyProgramSequence.length;
+         currentProgramIndex = dailyProgramSequence[currentSlot];
          playCurrentProgram();
      }
 
      // ═══ PLAY PREVIOUS PROGRAM ═══
      function playPrevProgram() {
-         currentProgramIndex = (currentProgramIndex - 1 + programs.length) % programs.length;
+         currentSlot = (currentSlot - 1 + dailyProgramSequence.length) % dailyProgramSequence.length;
+         currentProgramIndex = dailyProgramSequence[currentSlot];
          playCurrentProgram();
      }
 
